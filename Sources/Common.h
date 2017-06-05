@@ -9,6 +9,15 @@
 
 #include <string>
 
+#define SAFE_DELETE(x)    \
+    {                     \
+        if (x != nullptr) \
+        {                 \
+            delete x;     \
+            x = nullptr;  \
+        }                 \
+    }
+
 namespace aga
 {
 }

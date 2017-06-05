@@ -15,6 +15,9 @@ namespace aga
     Screen::Screen (unsigned width, unsigned height)
         : m_Width (width)
         , m_Height (height)
+        , m_RealWidth (width)
+        , m_RealHeight (height)
+        , m_Redraw (false)
     {
     }
 
@@ -36,15 +39,16 @@ namespace aga
     {
         if (!al_init ())
         {
-            fprintf (stderr, "failed to initialize allegro!\n");
+            fprintf (stderr, "Failed to initialize allegro!\n");
             return false;
         }
 
+        al_set_new_display_flags (ALLEGRO_RESIZABLE);
         m_Display = al_create_display (m_Width, m_Height);
 
         if (!m_Display)
         {
-            fprintf (stderr, "failed to create display!\n");
+            fprintf (stderr, "Failed to create display!\n");
             return false;
         }
 
@@ -60,7 +64,7 @@ namespace aga
 
         if (!m_DisplayTimer)
         {
-            fprintf (stderr, "failed to create timer!\n");
+            fprintf (stderr, "Failed to create timer!\n");
             return false;
         }
 
@@ -68,7 +72,7 @@ namespace aga
 
         if (!m_EventQueue)
         {
-            fprintf (stderr, "failed to create event_queue!\n");
+            fprintf (stderr, "Failed to create event_queue!\n");
             al_destroy_display (m_Display);
             return false;
         }
@@ -79,6 +83,12 @@ namespace aga
 
         al_set_window_title (m_Display, GAME_TITLE);
         al_set_window_position (m_Display, 0, 0);
+
+        al_start_timer (m_DisplayTimer);
+
+        Lifecycle::Initialize ();
+
+        return true;
     }
 
     //--------------------------------------------------------------------------------------------------
@@ -102,42 +112,47 @@ namespace aga
             al_destroy_display (m_Display);
             m_Display = nullptr;
         }
+
+        Lifecycle::Destroy ();
     }
 
     //--------------------------------------------------------------------------------------------------
 
-    void Screen::MainLoop ()
+    bool Screen::Update ()
     {
-        al_start_timer (m_DisplayTimer);
+        ALLEGRO_EVENT ev;
+        al_wait_for_event (m_EventQueue, &ev);
 
-        ALLEGRO_BITMAP* bitmap = al_load_bitmap ("../Data/main_menu.png");
-
-        bool redraw = false;
-
-        while (true)
+        if (ev.type == ALLEGRO_EVENT_TIMER)
         {
-            ALLEGRO_EVENT ev;
-            al_wait_for_event (m_EventQueue, &ev);
-
-            if (ev.type == ALLEGRO_EVENT_TIMER)
-            {
-                redraw = true;
-            }
-            else if (ev.type == ALLEGRO_EVENT_DISPLAY_CLOSE)
-            {
-                break;
-            }
-
-            if (redraw && al_is_event_queue_empty (m_EventQueue))
-            {
-                redraw = false;
-                al_clear_to_color (al_map_rgb (0, 0, 0));
-                al_draw_scaled_bitmap (bitmap, 0, 0, al_get_bitmap_width (bitmap),
-                    al_get_bitmap_height (bitmap), 0, 0,
-                    m_Width, m_Height, 0);
-                al_flip_display ();
-            }
+            m_Redraw = true;
         }
+        else if (ev.type == ALLEGRO_EVENT_DISPLAY_CLOSE)
+        {
+            return false;
+        }
+        else if (ev.type == ALLEGRO_EVENT_DISPLAY_RESIZE)
+        {
+            m_RealWidth = ev.display.width;
+            m_RealHeight = ev.display.height;
+
+            al_acknowledge_resize (m_Display);
+        }
+
+        if (m_Redraw && al_is_event_queue_empty (m_EventQueue))
+        {
+            m_Redraw = false;
+            al_clear_to_color (al_map_rgb (0, 0, 0));
+
+            if (RenderFunction != nullptr)
+            {
+                RenderFunction ();
+            }
+
+            al_flip_display ();
+        }
+
+        return true;
     }
 
     //--------------------------------------------------------------------------------------------------
@@ -148,6 +163,13 @@ namespace aga
         ALLEGRO_MOUSE_CURSOR* cursor = al_create_mouse_cursor (bitmap, 0, 0);
 
         al_set_mouse_cursor (m_Display, cursor);
+    }
+
+    //--------------------------------------------------------------------------------------------------
+
+    const Point Screen::GetScreenSize ()
+    {
+        return Point{ m_RealWidth, m_RealHeight };
     }
 
     //--------------------------------------------------------------------------------------------------

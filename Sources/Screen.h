@@ -4,6 +4,9 @@
 #define __SCREEN_H__
 
 #include "Lifecycle.h"
+#include "Point.h"
+
+#include <functional>
 
 struct ALLEGRO_DISPLAY;
 struct ALLEGRO_EVENT_QUEUE;
@@ -19,12 +22,18 @@ namespace aga
         bool Initialize ();
         bool Destroy ();
 
-        void MainLoop ();
+        bool Update ();
 
         void SetMouseCursor (const char* path);
 
+        const Point GetScreenSize ();
+
+        std::function<void()> RenderFunction;
+
     private:
         unsigned m_Width, m_Height;
+        unsigned m_RealWidth, m_RealHeight;
+        bool m_Redraw;
 
         ALLEGRO_DISPLAY* m_Display;
         ALLEGRO_EVENT_QUEUE* m_EventQueue;

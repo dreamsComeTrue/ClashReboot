@@ -1,29 +1,37 @@
 // Copyright 2017 Dominik 'dreamsComeTrue' Jasiński. All Rights Reserved.
 
 #include "Common.h"
+#include "MainLoop.h"
+#include "Resources.h"
 #include "Screen.h"
-#include <iostream>
 
-using namespace std;
+using namespace aga;
 
 // The attributes of the screen
 const int SCREEN_WIDTH = 1024;
 const int SCREEN_HEIGHT = 768;
 
-aga::Screen* g_Screen;
+MainLoop* g_MainLoop;
+Screen* g_Screen;
 
 int main (int argc, char* argv[])
 {
-    g_Screen = new aga::Screen (SCREEN_WIDTH, SCREEN_HEIGHT);
+    g_Screen = new Screen (SCREEN_WIDTH, SCREEN_HEIGHT);
+    g_MainLoop = new MainLoop (g_Screen);
 
     if (!g_Screen->Initialize ())
     {
         printf ("Failed to initialize!\n");
     }
 
-    g_Screen->SetMouseCursor ("../Data/cursors/normal_cursor.png");
-    g_Screen->MainLoop ();
-    g_Screen->Destroy ();
+    g_MainLoop->Initialize();
+
+    g_Screen->SetMouseCursor (GetResourcePath (ResourceID::CURSOR_NORMAL).c_str ());
+
+    g_MainLoop->Start ();
+
+    SAFE_DELETE (g_MainLoop);
+    SAFE_DELETE (g_Screen);
 
     return 0;
 }
